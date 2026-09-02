@@ -146,10 +146,17 @@ jobs:
             exit 1
           fi
 
+          cat > amo-metadata.json <<'EOF'
+          {
+            "version": { "license": "MPL-2.0" }
+          }
+          EOF
+
           web-ext sign \
             --source-dir build \
             --channel listed \
             --artifacts-dir dist \
+            --amo-metadata amo-metadata.json \
             --api-key "$AMO_API_KEY" \
             --api-secret "$AMO_API_SECRET" \
             --timeout 300000
