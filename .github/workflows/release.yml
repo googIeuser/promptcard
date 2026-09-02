@@ -148,7 +148,8 @@ jobs:
 
           cat > amo-metadata.json <<'EOF'
           {
-            "version": { "license": "MPL-2.0" }
+            "version": { "license": "MPL-2.0" },
+            "categories": { "firefox": ["photos-media"] }
           }
           EOF
 
