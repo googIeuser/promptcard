@@ -153,6 +153,7 @@ jobs:
           }
           EOF
 
+          set +e
           web-ext sign \
             --source-dir build \
             --channel listed \
@@ -160,7 +161,19 @@ jobs:
             --amo-metadata amo-metadata.json \
             --api-key "$AMO_API_KEY" \
             --api-secret "$AMO_API_SECRET" \
-            --timeout 300000
+            --timeout 300000 > sign-output.log 2>&1
+          sign_exit=$?
+          set -e
+          cat sign-output.log
+
+          if [ "$sign_exit" -ne 0 ]; then
+            if grep -q "Approval: timeout exceeded" sign-output.log; then
+              echo "::notice::Submission accepted - the version is now pending AMO human review."
+              echo "When approved, the signed XPI can be downloaded from the URL printed above."
+            else
+              exit "$sign_exit"
+            fi
+          fi
 
           echo "Signed add-on artifacts:"
           ls -l dist/
