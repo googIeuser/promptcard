@@ -1,5 +1,5 @@
 "use strict";
-/* Smoke test: loads analyzer+background+content with stubs and runs the local engine */
+/* Smoke test: loads messages+analyzer+background+content with stubs and runs the local engine */
 const vm = require("vm");
 const fs = require("fs");
 const path = require("path");
@@ -44,12 +44,19 @@ const created = {};
 const msgListeners = [];
 const listeners = {};
 const browserStub = {
-  contextMenus: { create: (o) => { created.menu = o; }, onClicked: { addListener: (f) => { listeners.menu = f; } } },
+  contextMenus: {
+    create: (o) => { created.menu = o; },
+    update: async () => {},
+    onClicked: { addListener: (f) => { listeners.menu = f; } },
+  },
   runtime: {
     onMessage: { addListener: (f) => { msgListeners.push(f); } },
     sendMessage: async () => ({ ok: true, prompt: "stub" }),
   },
-  storage: { sync: { get: async (d) => Object.assign({}, d) } },
+  storage: {
+    sync: { get: async (d) => Object.assign({}, d), set: async () => {} },
+    onChanged: { addListener: (f) => { listeners.changed = f; } },
+  },
   tabs: {}, scripting: {},
 };
 
@@ -61,20 +68,23 @@ const sandbox = {
   navigator: { clipboard: { writeText: async () => {} } },
 };
 vm.createContext(sandbox);
-vm.runInContext(fs.readFileSync(dir + "analyzer.js", "utf8"), sandbox, { filename: "analyzer.js" });
-vm.runInContext(fs.readFileSync(dir + "background.js", "utf8"), sandbox, { filename: "background.js" });
-vm.runInContext(fs.readFileSync(dir + "content.js", "utf8"), sandbox, { filename: "content.js" });
-console.log("LOAD-OK; menu created:", JSON.stringify(created.menu && created.menu.title));
+for (const f of ["messages.js", "analyzer.js", "background.js", "content.js"]) {
+  vm.runInContext(fs.readFileSync(dir + f, "utf8"), sandbox, { filename: f });
+}
 
 (async () => {
+  await new Promise((r) => setTimeout(r, 20)); // refreshMenu() is async
+  console.log("LOAD-OK; menu created:", JSON.stringify(created.menu && created.menu.title));
+  console.log("I18N-OK en:", sandbox.pcT("en", "menuTitle"), "| tr:", sandbox.pcT("tr", "menuTitle").slice(0, 40));
   const res = await sandbox.analyzeLocally({}, "data:image/png;base64,x");
   console.log("ENGINE-OK engine=" + res.engine);
   console.log("---- PROMPT ----");
   console.log(res.prompt);
   const bgListener = msgListeners[0]; // background.js registers first
   const r2 = await Promise.resolve(bgListener({ type: "ANALYZE", src: "http://example.test/y.png" }));
-  console.log("BG-ANALYZE(no network expected):", JSON.stringify(r2).slice(0, 160));
+  console.log("BG-ANALYZE(no network expected):", JSON.stringify(r2).slice(0, 200));
   const pong = msgListeners[1]({ type: "PING" });
   console.log("CONTENT-PING:", pong);
+  if (typeof listeners.changed !== "function") throw new Error("storage.onChanged listener missing");
   console.log("SMOKE-DONE");
 })().catch((e) => { console.error("SMOKE-FAIL", e); process.exit(1); });

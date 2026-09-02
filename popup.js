@@ -4,14 +4,19 @@
 const grid = document.getElementById("grid");
 const statusEl = document.getElementById("status");
 
+let lang = PC_DEFAULT_LANG;
+function T(k, v) { return pcT(lang, k, v); }
+
 document.getElementById("settings").addEventListener("click", () => browser.runtime.openOptionsPage());
 
 async function init() {
-  statusEl.textContent = "Sayfa taranıyor…";
+  lang = await pcGetLang();
+  document.getElementById("settings").textContent = T("settings");
+  statusEl.textContent = T("scanning");
   const tabs = await browser.tabs.query({ active: true, currentWindow: true });
   const tab = tabs && tabs[0];
   if (!tab || !tab.id || !/^https?:/.test(tab.url || "")) {
-    statusEl.textContent = "Bu sayfa desteklenmiyor (yalnızca http/https sayfaları).";
+    statusEl.textContent = T("unsupported");
     return;
   }
   try {
@@ -21,17 +26,17 @@ async function init() {
       await browser.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
       await browser.scripting.insertCSS({ target: { tabId: tab.id }, files: ["content.css"] });
     } catch (e2) {
-      statusEl.textContent = "Sayfaya content script enjekte edilemedi.";
+      statusEl.textContent = T("injectFail");
       return;
     }
   }
   let list = [];
   try { list = await browser.tabs.sendMessage(tab.id, { type: "LIST_IMAGES" }); } catch (e) {}
   if (!Array.isArray(list) || list.length === 0) {
-    statusEl.textContent = "Sayfada analiz edilebilir görsel bulunamadı.";
+    statusEl.textContent = T("noImages");
     return;
   }
-  statusEl.textContent = list.length + " görsel bulundu — prompt üretmek için birine tıkla.";
+  statusEl.textContent = T("foundImages", { n: list.length });
   grid.innerHTML = "";
   for (const item of list.slice(0, 12)) {
     const cell = document.createElement("button");

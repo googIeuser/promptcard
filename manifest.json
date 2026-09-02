@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "PromptCard — Image to Prompt AI",
   "version": "1.0.0",
-  "description": "Sayfadaki herhangi bir görseli analiz eder ve benzer bir görsel üretmek için ayrıntılı AI prompt'u oluşturur. (PromptCard'ın Firefox uyarlaması)",
+  "description": "Analyzes any image on the page and generates a detailed AI prompt to recreate a similar image. Firefox port of PromptCard.",
   "browser_specific_settings": {
     "gecko": {
       "id": "promptcard-firefox@local",
@@ -11,7 +11,7 @@
   },
   "permissions": ["contextMenus", "storage", "scripting", "activeTab"],
   "host_permissions": ["<all_urls>"],
-  "background": { "scripts": ["analyzer.js", "background.js"] },
+  "background": { "scripts": ["messages.js", "analyzer.js", "background.js"] },
   "action": {
     "default_popup": "popup.html",
     "default_title": "PromptCard",
@@ -21,7 +21,7 @@
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": ["content.js"],
+      "js": ["messages.js", "content.js"],
       "css": ["content.css"],
       "run_at": "document_idle"
     }

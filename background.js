@@ -14,12 +14,24 @@ const AI_INSTRUCTIONS =
   "mood, style, level of detail and aspect ratio. Output ONLY the prompt text: no intro, " +
   "no quotes, no markdown.";
 
-/* ---------------- sağ tık menüsü ---------------- */
-browser.contextMenus.create({
-  id: "promptcard-analyze",
-  title: "🎴 PromptCard: Bu görsel için AI prompt üret",
-  contexts: ["image"],
-});
+/* ---------------- context menu (i18n) ---------------- */
+let menuCreated = false;
+async function refreshMenu() {
+  const lang = await pcGetLang();
+  const title = pcT(lang, "menuTitle");
+  if (menuCreated) {
+    try { await browser.contextMenus.update("promptcard-analyze", { title }); } catch (e) {}
+  } else {
+    browser.contextMenus.create({ id: "promptcard-analyze", title, contexts: ["image"] });
+    menuCreated = true;
+  }
+}
+refreshMenu();
+try {
+  browser.storage.onChanged.addListener((changes, area) => {
+    if (area === "sync" && changes && changes.lang) refreshMenu();
+  });
+} catch (e) {}
 
 browser.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== "promptcard-analyze" || !tab || !tab.id || !info.srcUrl) return;
@@ -60,23 +72,24 @@ async function analyzeImage(src) {
     if (!resp.ok) throw new Error("HTTP " + resp.status);
     blob = await resp.blob();
   } catch (err) {
-    return { ok: false, error: "Görsel indirilemedi: " + (err && err.message) };
+    return { ok: false, error: pcT(await pcGetLang(), "fetchFail", { msg: (err && err.message) || "" }) };
   }
   const dataUrl = await blobToDataURL(blob);
+  const lang = await pcGetLang();
   const settings = Object.assign({}, STORAGE_DEFAULTS, await browser.storage.sync.get(STORAGE_DEFAULTS));
 
   if (settings.apiKey) {
     try {
-      const prompt = await analyzeWithAI(settings, dataUrl);
+      const prompt = await analyzeWithAI(settings, dataUrl, lang);
       return { ok: true, engine: "ai", prompt };
     } catch (err) {
       const local = await analyzeLocally(blob, dataUrl);
-      local.note = "AI isteği başarısız oldu (" + (err && err.message) + ") — yerel analiz kullanıldı.";
+      local.note = pcT(lang, "noteAiFail", { msg: (err && err.message) || "" });
       return local;
     }
   }
   const local = await analyzeLocally(blob, dataUrl);
-  local.note = "API anahtarı yok — yerleşik yerel analiz kullanıldı. Daha zengin promptlar için eklenti ayarlarından OpenAI uyumlu bir anahtar ekleyebilirsin.";
+  local.note = pcT(lang, "noteNoKey");
   return local;
 }
 
@@ -89,7 +102,7 @@ function blobToDataURL(blob) {
   });
 }
 
-async function analyzeWithAI(settings, dataUrl) {
+async function analyzeWithAI(settings, dataUrl, lang) {
   const resp = await fetch(settings.apiBase.replace(/\/$/, "") + "/chat/completions", {
     method: "POST",
     headers: {
@@ -117,6 +130,6 @@ async function analyzeWithAI(settings, dataUrl) {
   }
   const json = await resp.json();
   const text = json && json.choices && json.choices[0] && json.choices[0].message && json.choices[0].message.content;
-  if (!text) throw new Error("Modelden boş yanıt geldi");
+  if (!text) throw new Error(pcT(lang, "emptyModel"));
   return text.trim();
 }

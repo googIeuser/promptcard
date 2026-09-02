@@ -11,6 +11,14 @@
   chip.textContent = "🎴 Prompt";
   chip.style.display = "none";
   let chipTarget = null;
+  let lang = PC_DEFAULT_LANG;
+  function T(k, v) { return pcT(lang, k, v); }
+  pcGetLang().then((l) => { lang = l; });
+  try {
+    browser.storage.onChanged.addListener((c, a) => {
+      if (a === "sync" && c && c.lang) lang = c.lang.newValue || PC_DEFAULT_LANG;
+    });
+  } catch (e) {}
   (document.body || document.documentElement).appendChild(chip);
 
   document.addEventListener("mouseover", (e) => {
@@ -54,7 +62,7 @@
       .then((res) => {
         if (res && res.ok) ov.showPrompt(res.prompt, res.note);
         else if (res && res.error) ov.showError(res.error);
-        else ov.showError("Analiz başarısız oldu");
+        else ov.showError(T("analyzeFail"));
       })
       .catch((err) => ov.showError(err && err.message ? err.message : String(err)));
   }
@@ -66,10 +74,10 @@
     const panel = document.createElement("div");
     panel.className = "pc-panel";
     panel.innerHTML =
-      '<div class="pc-head"><span class="pc-title">PROMPT</span><button class="pc-x" title="Kapat">✕</button></div>' +
+      '<div class="pc-head"><span class="pc-title">PROMPT</span><button class="pc-x" title="' + T("close") + '">✕</button></div>' +
       '<div class="pc-body"></div>' +
-      '<div class="pc-foot"><button class="pc-btn pc-copy">Kopyala</button>' +
-      '<button class="pc-btn pc-redo">↻ Yeniden</button><span class="pc-brand">PROMPTCARD</span></div>';
+      '<div class="pc-foot"><button class="pc-btn pc-copy">' + T("copy") + '</button>' +
+      '<button class="pc-btn pc-redo">' + T("redo") + '</button><span class="pc-brand">PROMPTCARD</span></div>';
     ov.appendChild(panel);
     document.body.appendChild(ov);
 
@@ -99,7 +107,7 @@
     let promptText = "";
 
     const api = {
-      showLoading() { body.innerHTML = '<div class="pc-loading">Görsel analiz ediliyor…</div>'; },
+      showLoading() { body.innerHTML = '<div class="pc-loading">' + T("loading") + '</div>'; },
       showPrompt(text, note) {
         promptText = text;
         body.innerHTML = "";
@@ -142,7 +150,7 @@
         ta.remove();
       }
       const old = copyBtn.textContent;
-      copyBtn.textContent = "Kopyalandı ✓";
+      copyBtn.textContent = T("copied");
       setTimeout(() => { copyBtn.textContent = old; }, 1500);
     });
 

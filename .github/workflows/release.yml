@@ -1,0 +1,165 @@
+name: PromptCard Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Build a test package or publish the stable release"
+        required: true
+        type: choice
+        options:
+          - test-build
+          - stable-release
+        default: test-build
+      version:
+        description: "Version without the v prefix"
+        required: true
+        default: "1.0.0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: promptcard-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
+jobs:
+  test:
+    name: Syntax and smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Syntax check all extension scripts
+        run: |
+          for f in messages background analyzer content popup options; do
+            node --check "$f.js"
+          done
+
+      - name: Run smoke test
+        run: node test/smoke.js
+
+  package:
+    name: Package and publish
+    if: github.event_name == 'workflow_dispatch'
+    needs:
+      - test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Resolve build mode and version
+        id: meta
+        run: |
+          mode="${{ inputs.mode }}"
+          version="${{ inputs.version }}"
+          version="${version#v}"
+
+          if [ "$mode" != "test-build" ] && [ "$mode" != "stable-release" ]; then
+            echo "Unsupported workflow mode: $mode" >&2
+            exit 1
+          fi
+
+          if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Version must use x.y.z format: $version" >&2
+            exit 1
+          fi
+
+          if [ "${{ github.ref_name }}" != "main" ]; then
+            echo "Releases must be built from the main branch." >&2
+            exit 1
+          fi
+
+          {
+            echo "mode=$mode"
+            echo "version=$version"
+            echo "tag=v$version"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Stamp version into manifest
+        run: |
+          python3 - <<'PY'
+          import json, os
+          path = "manifest.json"
+          with open(path, encoding="utf-8") as fh:
+              manifest = json.load(fh)
+          manifest["version"] = os.environ["PC_VERSION"]
+          with open(path, "w", encoding="utf-8") as fh:
+              json.dump(manifest, fh, indent=2, ensure_ascii=False)
+              fh.write("\n")
+          PY
+        env:
+          PC_VERSION: ${{ steps.meta.outputs.version }}
+
+      - name: Build extension zip
+        run: |
+          mkdir -p dist
+          zip -r "dist/promptcard-v${{ steps.meta.outputs.version }}.zip" \
+            manifest.json background.js analyzer.js messages.js \
+            content.js content.css popup.html popup.js \
+            options.html options.js icons
+          sha256sum "dist/promptcard-v${{ steps.meta.outputs.version }}.zip" \
+            | tee "dist/promptcard-v${{ steps.meta.outputs.version }}.zip.sha256"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptcard-v${{ steps.meta.outputs.version }}-${{ steps.meta.outputs.mode }}
+          path: |
+            dist/*.zip
+            dist/*.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create or verify stable tag
+        if: inputs.mode == 'stable-release'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          tag="${{ steps.meta.outputs.tag }}"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            echo "Tag $tag already exists; reusing it."
+          else
+            git tag -a "$tag" "${GITHUB_SHA}" -m "PromptCard ${{ steps.meta.outputs.version }}"
+            git push origin "refs/tags/$tag"
+          fi
+
+      - name: Publish GitHub stable release
+        if: inputs.mode == 'stable-release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.meta.outputs.tag }}"
+          version="${{ steps.meta.outputs.version }}"
+
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/*.zip dist/*.sha256 \
+              --repo "$GITHUB_REPOSITORY" \
+              --clobber
+            gh release edit "$tag" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "PromptCard $version" \
+              --latest
+          else
+            gh release create "$tag" dist/*.zip dist/*.sha256 \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --title "PromptCard $version" \
+              --notes "Firefox WebExtension build of PromptCard (Image to Prompt AI). Extract the zip or load it temporarily via about:debugging -> Load Temporary Add-on (manifest.json)." \
+              --latest
+          fi
