@@ -73,11 +73,35 @@
     ov.className = "pc-overlay";
     const panel = document.createElement("div");
     panel.className = "pc-panel";
-    panel.innerHTML =
-      '<div class="pc-head"><span class="pc-title">PROMPT</span><button class="pc-x" title="' + T("close") + '">✕</button></div>' +
-      '<div class="pc-body"></div>' +
-      '<div class="pc-foot"><button class="pc-btn pc-copy">' + T("copy") + '</button>' +
-      '<button class="pc-btn pc-redo">' + T("redo") + '</button><span class="pc-brand">PROMPTCARD</span></div>';
+
+    const head = document.createElement("div");
+    head.className = "pc-head";
+    const title = document.createElement("span");
+    title.className = "pc-title";
+    title.textContent = "PROMPT";
+    const xBtn = document.createElement("button");
+    xBtn.className = "pc-x";
+    xBtn.title = T("close");
+    xBtn.textContent = "✕";
+    head.append(title, xBtn);
+
+    const body = document.createElement("div");
+    body.className = "pc-body";
+
+    const foot = document.createElement("div");
+    foot.className = "pc-foot";
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "pc-btn pc-copy";
+    copyBtn.textContent = T("copy");
+    const redoBtn = document.createElement("button");
+    redoBtn.className = "pc-btn pc-redo";
+    redoBtn.textContent = T("redo");
+    const brand = document.createElement("span");
+    brand.className = "pc-brand";
+    brand.textContent = "PROMPTCARD";
+    foot.append(copyBtn, redoBtn, brand);
+
+    panel.append(head, body, foot);
     ov.appendChild(panel);
     document.body.appendChild(ov);
 
@@ -102,15 +126,19 @@
     window.addEventListener("scroll", onMove, true);
     window.addEventListener("resize", onMove);
 
-    const body = panel.querySelector(".pc-body");
-    const copyBtn = panel.querySelector(".pc-copy");
     let promptText = "";
 
     const api = {
-      showLoading() { body.innerHTML = '<div class="pc-loading">' + T("loading") + '</div>'; },
+      showLoading() {
+        body.replaceChildren();
+        const d = document.createElement("div");
+        d.className = "pc-loading";
+        d.textContent = T("loading");
+        body.appendChild(d);
+      },
       showPrompt(text, note) {
         promptText = text;
-        body.innerHTML = "";
+        body.replaceChildren();
         const pre = document.createElement("pre");
         pre.className = "pc-text";
         pre.textContent = text;
@@ -123,7 +151,7 @@
         }
       },
       showError(msg) {
-        body.innerHTML = "";
+        body.replaceChildren();
         const d = document.createElement("div");
         d.className = "pc-error";
         d.textContent = "⚠ " + msg;
@@ -136,7 +164,7 @@
       window.removeEventListener("resize", onMove);
       ov.remove();
     }
-    panel.querySelector(".pc-x").addEventListener("click", cleanup);
+    xBtn.addEventListener("click", cleanup);
 
     copyBtn.addEventListener("click", async () => {
       if (!promptText) return;
@@ -154,7 +182,7 @@
       setTimeout(() => { copyBtn.textContent = old; }, 1500);
     });
 
-    panel.querySelector(".pc-redo").addEventListener("click", () => {
+    redoBtn.addEventListener("click", () => {
       if (img) requestAnalysis(img, api);
     });
 

@@ -29,6 +29,8 @@ function el() {
     style: {}, children: [], textContent: "", type: "", className: "", title: "", alt: "",
     set innerHTML(v) { this._html = v; }, get innerHTML() { return this._html || ""; },
     appendChild(c) { this.children.push(c); return c; },
+    append(...kids) { this.children.push(...kids); },
+    replaceChildren() { this.children.length = 0; },
     remove() {}, addEventListener() {}, removeEventListener() {},
     querySelector() { return el(); }, contains() { return false; }, select() {},
     getBoundingClientRect() { return { top: 10, left: 10, right: 310, width: 300, height: 200 }; },

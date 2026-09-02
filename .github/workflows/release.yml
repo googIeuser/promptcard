@@ -108,15 +108,26 @@ jobs:
         env:
           PC_VERSION: ${{ steps.meta.outputs.version }}
 
-      - name: Build extension zip
+      - name: Assemble extension source
         run: |
-          mkdir -p dist
-          zip -r "dist/promptcard-v${{ steps.meta.outputs.version }}.zip" \
-            manifest.json background.js analyzer.js messages.js \
+          mkdir -p build dist
+          cp -R manifest.json background.js analyzer.js messages.js \
             content.js content.css popup.html popup.js \
-            options.html options.js icons
-          sha256sum "dist/promptcard-v${{ steps.meta.outputs.version }}.zip" \
-            | tee "dist/promptcard-v${{ steps.meta.outputs.version }}.zip.sha256"
+            options.html options.js icons build/
+
+      - name: web-ext lint (addons.mozilla.org validation)
+        run: |
+          npm install --global --no-fund --no-audit web-ext
+          web-ext lint --source-dir build --warnings-as-errors
+
+      - name: Build extension packages (zip + xpi)
+        run: |
+          version="${{ steps.meta.outputs.version }}"
+          (cd build && zip -r "../dist/promptcard-v${version}.zip" .)
+          cp "dist/promptcard-v${version}.zip" "dist/promptcard-v${version}.xpi"
+          for f in "dist/promptcard-v${version}.zip" "dist/promptcard-v${version}.xpi"; do
+            sha256sum "$f" | tee "$f.sha256"
+          done
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -124,6 +135,7 @@ jobs:
           name: promptcard-v${{ steps.meta.outputs.version }}-${{ steps.meta.outputs.mode }}
           path: |
             dist/*.zip
+            dist/*.xpi
             dist/*.sha256
           if-no-files-found: error
           retention-days: 30
@@ -151,7 +163,7 @@ jobs:
           version="${{ steps.meta.outputs.version }}"
 
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$tag" dist/*.zip dist/*.sha256 \
+            gh release upload "$tag" dist/*.zip dist/*.xpi dist/*.sha256 \
               --repo "$GITHUB_REPOSITORY" \
               --clobber
             gh release edit "$tag" \
@@ -159,7 +171,7 @@ jobs:
               --title "PromptCard $version" \
               --latest
           else
-            gh release create "$tag" dist/*.zip dist/*.sha256 \
+            gh release create "$tag" dist/*.zip dist/*.xpi dist/*.sha256 \
               --repo "$GITHUB_REPOSITORY" \
               --verify-tag \
               --title "PromptCard $version" \
