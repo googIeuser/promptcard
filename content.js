@@ -4,7 +4,7 @@
   if (window.__promptcardLoaded) return;
   window.__promptcardLoaded = true;
 
-  /* ---------- görsel üzerine gelince beliren chip ---------- */
+  /* ---------- hover chip shown over images ---------- */
   const chip = document.createElement("button");
   chip.type = "button";
   chip.className = "pc-chip";

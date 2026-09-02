@@ -1,4 +1,4 @@
-/* .pc-chip: görsel üzerine gelince beliren buton */
+/* .pc-chip: button that appears when hovering over an image */
 .pc-chip {
   position: fixed;
   z-index: 2147483646;
@@ -16,7 +16,7 @@
 }
 .pc-chip:hover { background: #ea580c; }
 
-/* .pc-overlay: görselin üzerinde prompt paneli */
+/* .pc-overlay: prompt panel shown on top of the image */
 .pc-overlay { position: fixed; z-index: 2147483647; }
 .pc-panel {
   background: rgba(12, 12, 16, .94);

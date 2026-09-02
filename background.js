@@ -1,4 +1,4 @@
-/* PromptCard — background script: menu, mesajlar, AI çağrısı */
+/* PromptCard — background script: menu, messages, AI call */
 "use strict";
 
 const STORAGE_DEFAULTS = {
@@ -39,7 +39,7 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
   try {
     await browser.tabs.sendMessage(tab.id, { type: "OPEN_OVERLAY", src: info.srcUrl });
   } catch (err) {
-    console.warn("[PromptCard] Sayfaya ulaşılamadı:", err && err.message);
+    console.warn("[PromptCard] Page not reachable:", err && err.message);
   }
 });
 
@@ -47,18 +47,18 @@ async function ensureContentScript(tabId) {
   try {
     await browser.tabs.sendMessage(tabId, { type: "PING" });
     return true;
-  } catch (e) { /* henüz enjekte değil */ }
+  } catch (e) { /* not injected yet */ }
   try {
     await browser.scripting.executeScript({ target: { tabId }, files: ["content.js"] });
     await browser.scripting.insertCSS({ target: { tabId }, files: ["content.css"] });
     return true;
   } catch (err) {
-    console.warn("[PromptCard] Content script enjekte edilemedi:", err && err.message);
+    console.warn("[PromptCard] Content script could not be injected:", err && err.message);
     return false;
   }
 }
 
-/* ---------------- mesajlar ---------------- */
+/* ---------------- messages ---------------- */
 browser.runtime.onMessage.addListener((msg) => {
   if (!msg || typeof msg !== "object") return undefined;
   if (msg.type === "ANALYZE") return analyzeImage(msg.src);

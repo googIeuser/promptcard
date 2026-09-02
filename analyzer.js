@@ -1,4 +1,4 @@
-/* PromptCard — yerel (offline) analiz motoru */
+/* PromptCard — local (offline) analysis engine */
 "use strict";
 
 const COLOR_NAMES = [
@@ -38,7 +38,7 @@ function decodeViaImg(dataUrl) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("Görsel çözümlenemedi"));
+    img.onerror = () => reject(new Error("Image could not be decoded"));
     img.src = dataUrl;
   });
 }
