@@ -13,10 +13,10 @@
   let chipTarget = null;
   let lang = PC_DEFAULT_LANG;
   function T(k, v) { return pcT(lang, k, v); }
-  pcGetLang().then((l) => { lang = l; });
+  pcGetLang().then((l) => { lang = l; chip.textContent = T("chip"); });
   try {
     browser.storage.onChanged.addListener((c, a) => {
-      if (a === "sync" && c && c.lang) lang = c.lang.newValue || PC_DEFAULT_LANG;
+      if (a === "sync" && c && c.lang) { lang = c.lang.newValue || PC_DEFAULT_LANG; chip.textContent = T("chip"); }
     });
   } catch (e) {}
   (document.body || document.documentElement).appendChild(chip);
