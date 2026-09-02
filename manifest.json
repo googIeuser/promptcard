@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "PromptCard — Image to Prompt AI",
+  "version": "1.0.0",
+  "description": "Sayfadaki herhangi bir görseli analiz eder ve benzer bir görsel üretmek için ayrıntılı AI prompt'u oluşturur. (PromptCard'ın Firefox uyarlaması)",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "promptcard-firefox@local",
+      "strict_min_version": "115.0"
+    }
+  },
+  "permissions": ["contextMenus", "storage", "scripting", "activeTab"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "scripts": ["analyzer.js", "background.js"] },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "PromptCard",
+    "default_icon": { "48": "icons/icon48.png" }
+  },
+  "options_ui": { "page": "options.html", "open_in_tab": true },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "48": "icons/icon48.png",
+    "96": "icons/icon96.png"
+  }
+}
