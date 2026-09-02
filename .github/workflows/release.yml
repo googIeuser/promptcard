@@ -150,6 +150,8 @@ jobs:
             --source-dir build \
             --channel listed \
             --artifacts-dir dist \
+            --api-key "$AMO_API_KEY" \
+            --api-secret "$AMO_API_SECRET" \
             --timeout 300000
 
           echo "Signed add-on artifacts:"
