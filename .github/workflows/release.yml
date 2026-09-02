@@ -7,12 +7,13 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "Build a test package or publish the stable release"
+        description: "Build a test package, publish the GitHub release, or sign and submit to addons.mozilla.org"
         required: true
         type: choice
         options:
           - test-build
           - stable-release
+          - amo-sign
         default: test-build
       version:
         description: "Version without the v prefix"
@@ -72,10 +73,13 @@ jobs:
           version="${{ inputs.version }}"
           version="${version#v}"
 
-          if [ "$mode" != "test-build" ] && [ "$mode" != "stable-release" ]; then
-            echo "Unsupported workflow mode: $mode" >&2
-            exit 1
-          fi
+          case "$mode" in
+            test-build|stable-release|amo-sign) ;;
+            *)
+              echo "Unsupported workflow mode: $mode" >&2
+              exit 1
+              ;;
+          esac
 
           if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
             echo "Version must use x.y.z format: $version" >&2
@@ -128,6 +132,28 @@ jobs:
           for f in "dist/promptcard-v${version}.zip" "dist/promptcard-v${version}.xpi"; do
             sha256sum "$f" | tee "$f.sha256"
           done
+
+      - name: Sign and submit to addons.mozilla.org (public listing)
+        if: inputs.mode == 'amo-sign'
+        env:
+          AMO_API_KEY: ${{ secrets.AMO_API_KEY }}
+          AMO_API_SECRET: ${{ secrets.AMO_API_SECRET }}
+        run: |
+          if [ -z "$AMO_API_KEY" ] || [ -z "$AMO_API_SECRET" ]; then
+            echo "AMO secrets are missing." >&2
+            echo "1) Create an API key at https://addons.mozilla.org/developers/addon/api/key/" >&2
+            echo "2) Add AMO_API_KEY and AMO_API_SECRET as repository secrets (Settings > Secrets and variables > Actions)." >&2
+            exit 1
+          fi
+
+          web-ext sign \
+            --source-dir build \
+            --channel listed \
+            --artifacts-dir dist \
+            --timeout 300000
+
+          echo "Signed add-on artifacts:"
+          ls -l dist/
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
