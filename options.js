@@ -1,4 +1,4 @@
-/* PromptCard options (i18n-aware) */
+
 "use strict";
 
 const DEFAULTS = { apiBase: "https://api.openai.com/v1", apiKey: "", model: "gpt-4o-mini", lang: PC_DEFAULT_LANG };

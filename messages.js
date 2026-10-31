@@ -1,4 +1,4 @@
-/* PromptCard — shared UI strings (en/tr) */
+
 "use strict";
 if (!globalThis.__pcMessagesLoaded) {
   globalThis.__pcMessagesLoaded = true;

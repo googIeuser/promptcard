@@ -1,5 +1,5 @@
 "use strict";
-/* Smoke test: loads messages+analyzer+background+content with stubs and runs the local engine */
+
 const vm = require("vm");
 const fs = require("fs");
 const path = require("path");
@@ -75,14 +75,14 @@ for (const f of ["messages.js", "analyzer.js", "background.js", "content.js"]) {
 }
 
 (async () => {
-  await new Promise((r) => setTimeout(r, 20)); // refreshMenu() is async
+  await new Promise((r) => setTimeout(r, 20));
   console.log("LOAD-OK; menu created:", JSON.stringify(created.menu && created.menu.title));
   console.log("I18N-OK en:", sandbox.pcT("en", "menuTitle"), "| tr:", sandbox.pcT("tr", "menuTitle").slice(0, 40));
   const res = await sandbox.analyzeLocally({}, "data:image/png;base64,x");
   console.log("ENGINE-OK engine=" + res.engine);
   console.log("---- PROMPT ----");
   console.log(res.prompt);
-  const bgListener = msgListeners[0]; // background.js registers first
+  const bgListener = msgListeners[0];
   const r2 = await Promise.resolve(bgListener({ type: "ANALYZE", src: "http://example.test/y.png" }));
   console.log("BG-ANALYZE(no network expected):", JSON.stringify(r2).slice(0, 200));
   const pong = msgListeners[1]({ type: "PING" });

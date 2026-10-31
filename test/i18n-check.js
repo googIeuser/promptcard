@@ -1,5 +1,5 @@
 "use strict";
-/* Validates i18n: en/tr parity and that every key used in code exists in both dicts */
+
 const fs = require("fs");
 const vm = require("vm");
 const path = require("path");

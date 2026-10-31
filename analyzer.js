@@ -1,4 +1,4 @@
-/* PromptCard — local (offline) analysis engine */
+
 "use strict";
 
 const COLOR_NAMES = [

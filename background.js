@@ -1,4 +1,4 @@
-/* PromptCard — background script: menu, messages, AI call */
+
 "use strict";
 
 const STORAGE_DEFAULTS = {
@@ -14,7 +14,7 @@ const AI_INSTRUCTIONS =
   "mood, style, level of detail and aspect ratio. Output ONLY the prompt text: no intro, " +
   "no quotes, no markdown.";
 
-/* ---------------- context menu (i18n) ---------------- */
+
 let menuCreated = false;
 async function refreshMenu() {
   const lang = await pcGetLang();
@@ -47,7 +47,7 @@ async function ensureContentScript(tabId) {
   try {
     await browser.tabs.sendMessage(tabId, { type: "PING" });
     return true;
-  } catch (e) { /* not injected yet */ }
+  } catch (e) {                        }
   try {
     await browser.scripting.executeScript({ target: { tabId }, files: ["content.js"] });
     await browser.scripting.insertCSS({ target: { tabId }, files: ["content.css"] });
@@ -58,7 +58,7 @@ async function ensureContentScript(tabId) {
   }
 }
 
-/* ---------------- messages ---------------- */
+
 browser.runtime.onMessage.addListener((msg) => {
   if (!msg || typeof msg !== "object") return undefined;
   if (msg.type === "ANALYZE") return analyzeImage(msg.src);

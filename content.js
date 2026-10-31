@@ -1,10 +1,10 @@
-/* PromptCard content script: hover chip + prompt overlay */
+
 (function () {
   "use strict";
   if (window.__promptcardLoaded) return;
   window.__promptcardLoaded = true;
 
-  /* ---------- hover chip shown over images ---------- */
+
   const chip = document.createElement("button");
   chip.type = "button";
   chip.className = "pc-chip";
@@ -67,7 +67,7 @@
       .catch((err) => ov.showError(err && err.message ? err.message : String(err)));
   }
 
-  /* ---------- overlay panel ---------- */
+
   function createOverlay(img) {
     const ov = document.createElement("div");
     ov.className = "pc-overlay";

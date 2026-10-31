@@ -1,4 +1,4 @@
-/* PromptCard popup */
+
 "use strict";
 
 const grid = document.getElementById("grid");
